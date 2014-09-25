@@ -4,7 +4,6 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-using std::vector;
 #include <clipper/clipper.hpp>
 
 #include "intpoint.h"
@@ -37,7 +36,7 @@ public:
         return polygon->size();
     }
 
-    Point operator[] (unsigned int index) const
+    Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*polygon)[index];
@@ -86,6 +85,29 @@ public:
         }
         return length;
     }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(Point p : *polygon)
+        {
+            ret.X = std::min(ret.X, p.X);
+            ret.Y = std::min(ret.Y, p.Y);
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(Point p : *polygon)
+        {
+            ret.X = std::max(ret.X, p.X);
+            ret.Y = std::max(ret.Y, p.Y);
+        }
+        return ret;
+    }
+
 
     double area() const
     {
@@ -247,18 +269,18 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
         return ret;
     }
-    Polygons offset(int distance) const
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
         ClipperLib::ClipperOffset clipper;
-        clipper.AddPaths(polygons, ClipperLib::jtMiter, ClipperLib::etClosedPolygon);
+        clipper.AddPaths(polygons, joinType, ClipperLib::etClosedPolygon);
         clipper.MiterLimit = 2.0;
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
-    vector<Polygons> splitIntoParts(bool unionAll = false) const
+    std::vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
-        vector<Polygons> ret;
+        std::vector<Polygons> ret;
         ClipperLib::Clipper clipper(clipper_init);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
@@ -271,7 +293,7 @@ public:
         return ret;
     }
 private:
-    void _processPolyTreeNode(ClipperLib::PolyNode* node, vector<Polygons>& ret) const
+    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Polygons>& ret) const
     {
         for(int n=0; n<node->ChildCount(); n++)
         {
@@ -310,6 +332,34 @@ public:
             }
         }
         return length;
+    }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::min(ret.X, p.X);
+                ret.Y = std::min(ret.Y, p.Y);
+            }
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::max(ret.X, p.X);
+                ret.Y = std::max(ret.Y, p.Y);
+            }
+        }
+        return ret;
     }
 
     bool inside(Point p)
